@@ -17,6 +17,8 @@ echo "These values can be found on the Apple Wiki."
 
 device=$1
 version=$2
+CURL_PATH='/opt/local/bin/curl'
+USER_AGENT='Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:155.0) Gecko/20100101 Firefox/155.0'
 
 if [ -z "$device" ] || [ -z "$version" ]; then
   usage
@@ -91,7 +93,7 @@ if ! [ -z "$3" ] && [ "$3" != "-i" ] && [ "$3" != "-t" ] && [ "$3" != "-b" ]; th
   codename=$2
   build=$3
   extra=$4
-  curl -s -o /tmp/firmwarekeys.txt -H "User-Agent: Mozilla" "https://theapplewiki.com/wiki/Keys:$codename"_"$build"_"($device)?action=raw"
+  $CURL_PATH -s -o /tmp/firmwarekeys.txt -H "User-Agent: $USER_AGENT" "https://theapplewiki.com/wiki/Keys:$codename"_"$build"_"($device)?action=raw"
   if ! [ -e "/tmp/firmwarekeys.txt" ]; then
     echo "Failed to download the requested key page!"
     exit 1
@@ -106,8 +108,8 @@ if ! [ -z "$3" ] && [ "$3" != "-i" ] && [ "$3" != "-t" ] && [ "$3" != "-b" ]; th
 else
   extra=$3
   # Get the link to the IPSW and build number for the specified version
-  ipsw_link=$(curl -s "https://api.ipsw.me/v2.1/$device/$version/url")
-  BuildID=$(curl -s "https://api.ipsw.me/v2.1/$device/$version/info.json" | grep buildid | sed s+'"buildid": "'++ | sed s+'",'++ | xargs)
+  ipsw_link=$($CURL_PATH -s "https://api.ipsw.me/v2.1/$device/$version/url")
+  BuildID=$($CURL_PATH -s "https://api.ipsw.me/v2.1/$device/$version/info.json" | grep buildid | sed s+'"buildid": "'++ | sed s+'",'++ | xargs)
 
   if [ -z "$ipsw_link" ]; then
     echo "iOS version $version for device $device not found!"
@@ -119,12 +121,13 @@ else
   minorversion=$(echo $version | awk -F. '{print $2}')
 
   # Get the codename of the iOS version, as it is needed when downloading the key page
-  codename="$((curl -s -H "User-Agent: Mozilla" "https://theapplewiki.com/wiki/Firmware_Keys/$majorversion.x") | grep "$BuildID"_"" |  grep $device -m 1| awk -F_ '{print $1}' | awk -F"wiki" '{print "wiki"$2}')"
+  codename="$(($CURL_PATH -s -H "User-Agent: $USER_AGENT" "https://theapplewiki.com/wiki/Firmware_Keys/$majorversion.x") | grep "$BuildID"_"" |  grep $device -m 1| awk -F_ '{print $1}' | awk -F"wiki" '{print "wiki"$2}')"
+  echo $codename
 
   # Get firmware info page - contains filenames and keys
   if ! [ -d .decrypted_$device ] && ! [ -e *-$device/build/decrypted/files_decrypted ]; then
     echo "Downloading firmware keys..."
-    curl -s -o /tmp/firmwarekeys.txt -H "User-Agent: Mozilla" "https://theapplewiki.com/$codename"_"$BuildID"_"($device)?action=raw"
+    $CURL_PATH -s -o /tmp/firmwarekeys.txt -H "User-Agent: $USER_AGENT" "https://theapplewiki.com/$codename"_"$BuildID"_"($device)?action=raw"
     if ! [ -e "/tmp/firmwarekeys.txt" ]; then
       echo "Failed to download firmware keys. If you keep getting this error with multiple iOS versions, update to Big Sur or later."
       exit 1
