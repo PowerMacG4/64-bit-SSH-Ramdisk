@@ -91,7 +91,7 @@ if ! [ -z "$3" ] && [ "$3" != "-i" ] && [ "$3" != "-t" ] && [ "$3" != "-b" ]; th
   codename=$2
   build=$3
   extra=$4
-  curl -s -o /tmp/firmwarekeys.txt "https://theapplewiki.com/wiki/Keys:$codename"_"$build"_"($device)?action=raw"
+  curl -s -o /tmp/firmwarekeys.txt -H "User-Agent: Mozilla" "https://theapplewiki.com/wiki/Keys:$codename"_"$build"_"($device)?action=raw"
   if ! [ -e "/tmp/firmwarekeys.txt" ]; then
     echo "Failed to download the requested key page!"
     exit 1
@@ -119,12 +119,12 @@ else
   minorversion=$(echo $version | awk -F. '{print $2}')
 
   # Get the codename of the iOS version, as it is needed when downloading the key page
-  codename="$((curl -s "https://theapplewiki.com/wiki/Firmware_Keys/$majorversion.x") | grep "$BuildID"_"" |  grep $device -m 1| awk -F_ '{print $1}' | awk -F"wiki" '{print "wiki"$2}')"
+  codename="$((curl -s -H "User-Agent: Mozilla" "https://theapplewiki.com/wiki/Firmware_Keys/$majorversion.x") | grep "$BuildID"_"" |  grep $device -m 1| awk -F_ '{print $1}' | awk -F"wiki" '{print "wiki"$2}')"
 
   # Get firmware info page - contains filenames and keys
   if ! [ -d .decrypted_$device ] && ! [ -e *-$device/build/decrypted/files_decrypted ]; then
     echo "Downloading firmware keys..."
-    curl -s -o /tmp/firmwarekeys.txt "https://theapplewiki.com/$codename"_"$BuildID"_"($device)?action=raw"
+    curl -s -o /tmp/firmwarekeys.txt -H "User-Agent: Mozilla" "https://theapplewiki.com/$codename"_"$BuildID"_"($device)?action=raw"
     if ! [ -e "/tmp/firmwarekeys.txt" ]; then
       echo "Failed to download firmware keys. If you keep getting this error with multiple iOS versions, update to Big Sur or later."
       exit 1
